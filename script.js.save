@@ -1,0 +1,403 @@
+    };
+
+}
+
+
+
+
+//LOGIN SUBMIT
+
+const loginSubmit = document.getElementById("loginSubmit");
+
+
+if(loginSubmit){
+
+
+    loginSubmit.onclick = function(){
+
+
+        let username =
+        document.getElementById("loginUsername").value;
+
+
+        let password =
+        document.getElementById("loginPassword").value;
+
+
+
+        fetch("login.php",{
+
+
+            method:"POST",
+
+
+            headers:{
+                "Content-Type":
+                "application/x-www-form-urlencoded"
+            },
+
+
+            body:
+            "username=" + encodeURIComponent(username)
+            +
+            "&password=" + encodeURIComponent(password)
+
+
+
+        })
+
+
+        .then(response=>response.json())
+
+
+        .then(data=>{
+
+
+            alert(data.message);
+
+
+            if(data.success){
+
+                window.location.reload();
+
+            }
+
+
+        });
+
+
+
+    };
+
+
+}
+
+//CREATE ROOM POPUP
+
+const createRoomBtn =
+document.getElementById("createRoomBtn");
+
+
+const createRoomOverlay =
+document.getElementById("createRoomOverlay");
+
+
+const closeCreateRoom =
+document.getElementById("closeCreateRoom");
+
+
+
+if(createRoomBtn){
+
+    createRoomBtn.onclick = function(){
+
+        createRoomOverlay.style.display="flex";
+
+    };
+
+}
+
+
+
+if(closeCreateRoom){
+
+    closeCreateRoom.onclick=function(){
+
+        createRoomOverlay.style.display="none";
+
+    };
+
+}
+
+
+
+//CREATE ROOM SUBMIT
+
+const createRoomSubmit =
+document.getElementById("createRoomSubmit");
+
+
+if(createRoomSubmit){
+
+
+    createRoomSubmit.onclick = function(){
+
+
+        let roomName =
+        document.getElementById("roomNameInput").value;
+
+
+        let key =
+        document.getElementById("roomKeyInput").value;
+
+
+
+        fetch("createRoom.php", {
+
+
+            method:"POST",
+
+
+            headers:{
+                "Content-Type":
+                "application/x-www-form-urlencoded"
+            },
+
+	 body:
+    		"roomName=" + encodeURIComponent(roomName)
+   			 +
+    		 "&key=" + encodeURIComponent(key)
+
+
+
+        })
+
+
+        .then(response=>response.json())
+
+
+        .then(data=>{
+
+
+            alert(data.message);
+
+
+
+            if(data.success){
+
+
+                createRoomOverlay.style.display="none";
+
+
+                //this clears inputs
+
+                document.getElementById("roomNameInput").value="";
+
+                document.getElementById("roomKeyInput").value="";
+
+
+            }
+
+
+
+        })
+
+
+        .catch(error=>{
+
+
+            console.log(error);
+
+            alert("Create room error");
+
+
+        });
+
+
+
+    };
+
+
+}
+
+
+
+
+//LOAD CHATROOMS
+
+
+function loadRooms(){
+
+
+    fetch("getRooms.php")
+
+
+    .then(response => response.json())
+
+
+    .then(rooms => {
+
+
+        let roomList =
+        document.getElementById("roomList");
+
+
+
+        if(!roomList){
+
+            return;
+
+        }
+
+
+
+        roomList.innerHTML="";
+
+
+
+        rooms.forEach(room => {
+
+
+            let row =
+            document.createElement("tr");
+
+
+
+            let status =
+            room.roomKey ?
+            "Locked" :
+            "Unlocked";
+
+
+
+            row.innerHTML = `
+
+            <td>${room.chatroomName}</td>
+
+            <td>${status}</td>
+	    <td>
+	    <button onclick="joinRoom('${room.chatroomName}', '${room.roomKey || ""}')">
+	    Join
+	    </button>
+	    </td>
+            `;
+
+
+            roomList.appendChild(row);
+
+
+
+        });
+
+
+
+    });
+
+
+
+}
+
+
+
+//this loads when the page opens
+
+loadRooms();
+
+
+
+
+//JOIN ROOM
+
+function joinRoom(roomName, roomKey){
+
+
+    let key = "";
+
+
+    if(roomKey){
+
+        key = prompt("Enter room key:");
+
+        if(key === null){
+
+            return;
+
+        }
+
+    }
+
+
+
+    fetch("joinRoom.php", {
+
+
+        method:"POST",
+
+
+        headers:{
+            "Content-Type":
+            "application/x-www-form-urlencoded"
+        },
+
+
+        body:
+        "roomName=" + encodeURIComponent(roomName)
+        +
+        "&key=" + encodeURIComponent(key)
+
+
+    })
+
+
+    .then(response=>response.json())
+
+
+.then(data => {
+
+    alert(data.message);
+
+    if(data.success){
+
+        document.getElementById("currentRoom").innerHTML =
+        "Current Room: " + data.room;
+
+        document.getElementById("messages").innerHTML = "";
+
+        socket.send(JSON.stringify({
+
+            type: "join",
+
+            room: data.room,
+
+            screenName: document.getElementById("screenName").value
+
+        }));
+
+    }
+
+});
+
+}
+
+
+//SEND CHAT MESSAGE
+
+const sendBtn = document.getElementById("sendBtn");
+
+if(sendBtn){
+
+    sendBtn.onclick = function(){
+
+
+        let message =
+        document.getElementById("messageInput").value;
+
+
+        if(message.trim() === ""){
+
+            return;
+
+        }
+
+
+        let data = {
+
+            type:"message",
+
+            screenName:
+            document.getElementById("screenName").value,
+
+            message:message
+
+        };
+
+
+        socket.send(JSON.stringify(data));
+
+
+        document.getElementById("messageInput").value="";
+
+
+    };
+
+}
